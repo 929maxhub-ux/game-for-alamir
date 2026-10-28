@@ -1,0 +1,1032 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>زرافة داش</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&family=Lalezar&display=swap">
+<style>
+/* Layout: one column. Title strip, HUD, segment pips, perk chips, 5:3 canvas stage, jump button, rules. Question card is a fixed modal so it fits phones. */
+/* Single committed look: neon arcade runner, level hue shifts with progress, gold giraffe cube. */
+:root {
+  --bg: #090c36;
+  --bg2: #1a0e52;
+  --panel: #111a5e;
+  --panel2: #0b1250;
+  --line: #2b3aa6;
+  --ink: #eef2ff;
+  --muted: #9fabee;
+  --cyan: #2ef2ff;
+  --pink: #ff3ea5;
+  --gold: #ffd84a;
+  --lime: #7dff8a;
+  --red: #ff5a6e;
+  --display: 'Lalezar', 'Cairo', system-ui, sans-serif;
+  --body: 'Cairo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 340px);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  padding-block: 16px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 920px; margin-inline: auto; display: grid; gap: 12px; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+h1 {
+  margin: 0; font-family: var(--display); font-weight: 400; line-height: 1.1;
+  font-size: clamp(2.3rem, 8vw, 3.5rem); color: var(--gold);
+  text-shadow: 0 3px 0 #7a3a00, 0 0 26px rgba(255, 216, 74, .35);
+}
+.sub { margin: 0; color: var(--muted); font-size: .95rem; min-width: 0; }
+
+.hud { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 14px; display: grid; min-width: 0; }
+.stat .k { font-size: .72rem; color: var(--muted); font-weight: 700; }
+.stat .v { font-family: var(--display); font-size: 1.35rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.right { margin-inline-start: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.speed {
+  font-family: var(--display); font-size: 1.15rem;
+  padding: 4px 14px; border-radius: 8px; border: 2px solid var(--line); background: var(--panel2);
+  font-variant-numeric: tabular-nums;
+}
+.speed.fast { border-color: var(--red); color: var(--red); animation: pulse .5s ease-in-out infinite alternate; }
+.speed.slow { border-color: var(--cyan); color: var(--cyan); }
+@keyframes pulse { from { background: var(--panel2); } to { background: #4a1030; } }
+.snd {
+  font: inherit; font-weight: 700; font-size: .85rem; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  border: 2px solid var(--line); background: var(--panel2); color: var(--ink);
+}
+.snd[aria-pressed="true"] { color: var(--muted); }
+
+.pips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pip { width: 14px; height: 14px; border-radius: 3px; background: var(--line); }
+.pip.ship { border-radius: 7px; }
+.pip.ok { background: var(--lime); }
+.pip.no { background: var(--red); }
+.pip.now { outline: 2px solid var(--cyan); outline-offset: 1px; }
+
+.perks { display: flex; flex-wrap: wrap; gap: 8px; }
+.perk { font-size: .85rem; font-weight: 700; padding: 2px 12px; border-radius: 999px; border: 1px dashed var(--muted); color: var(--muted); opacity: .55; }
+.perk.on { opacity: 1; border-style: solid; }
+.perk[data-k="shield"].on { color: var(--cyan); border-color: var(--cyan); }
+.perk[data-k="double"].on { color: var(--pink); border-color: var(--pink); }
+.perk[data-k="slow"].on { color: var(--gold); border-color: var(--gold); }
+
+.stage {
+  position: relative; border: 2px solid var(--cyan); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 0 0 1px #000, 0 0 28px rgba(46, 242, 255, .22);
+  touch-action: manipulation; user-select: none; -webkit-user-select: none; background: var(--bg);
+}
+canvas { display: block; width: 100%; aspect-ratio: 800 / 480; max-width: 100%; }
+.start {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center;
+  background: rgba(6, 8, 40, .55); padding: 12px;
+}
+.start p { margin: 0; max-width: 36ch; font-weight: 700; text-wrap: balance; }
+.btn {
+  font-family: var(--display); font-size: 1.45rem; line-height: 1.3; padding: 8px 30px; border: 0; border-radius: 8px;
+  background: var(--gold); color: #2a1500; box-shadow: 0 4px 0 #8a5a00; cursor: pointer;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a5a00; }
+.btn:focus-visible, .opt:focus-visible, .jump:focus-visible, .snd:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+.jump {
+  width: 100%; min-height: 56px; font-family: var(--display); font-size: 1.6rem; border: 0; border-radius: 10px;
+  background: var(--pink); color: #fff; box-shadow: 0 5px 0 #8a1b58; cursor: pointer; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+}
+.jump:active { transform: translateY(3px); box-shadow: 0 2px 0 #8a1b58; }
+.hint { margin: 0; color: var(--muted); font-size: .85rem; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rules li { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: .9rem; min-width: 0; }
+.rules b { display: block; font-family: var(--display); font-weight: 400; font-size: 1.1rem; }
+.rules .g { color: var(--lime); } .rules .r { color: var(--red); } .rules .c { color: var(--cyan); }
+@media (max-width: 640px) { .rules { grid-template-columns: 1fr; } .right { margin-inline-start: 0; } }
+
+.modal {
+  position: fixed; inset: 0; z-index: 50; background: rgba(4, 6, 30, .84); display: flex; align-items: center; justify-content: center;
+  padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.card {
+  width: min(640px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border: 2px solid var(--cyan);
+  border-radius: 12px; padding: 18px; display: grid; gap: 12px; box-shadow: 0 0 36px rgba(46, 242, 255, .25);
+}
+.eyebrow { margin: 0; font-size: .8rem; font-weight: 700; color: var(--cyan); }
+.card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(1.3rem, 4.6vw, 1.85rem); line-height: 1.4; text-wrap: balance; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  font: inherit; font-weight: 700; text-align: start; padding: 10px 14px; border-radius: 8px; border: 2px solid var(--line);
+  background: #0e1566; color: var(--ink); cursor: pointer; display: flex; gap: 10px; align-items: flex-start; min-width: 0;
+}
+.opt .n { font-family: var(--display); font-weight: 400; color: var(--gold); min-width: 1.1em; }
+.opt .t { min-width: 0; }
+.opt:hover:not([disabled]) { border-color: var(--cyan); }
+.opt[disabled] { cursor: default; }
+.opt.good { border-color: var(--lime); background: #0f3a2c; }
+.opt.bad { border-color: var(--red); background: #4a1030; }
+.fb { display: grid; gap: 8px; padding: 12px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); }
+.fb .ttl { margin: 0; font-family: var(--display); font-size: 1.45rem; line-height: 1.2; }
+.fb .ttl.ok { color: var(--lime); } .fb .ttl.no { color: var(--red); }
+.fb p { margin: 0; }
+.chip { display: inline-block; font-weight: 700; padding: 2px 12px; border-radius: 999px; border: 1px solid currentColor; }
+.chip.g { color: var(--gold); } .chip.r { color: var(--red); } .chip.p { color: var(--pink); } .chip.c { color: var(--cyan); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.missed { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; max-height: 38vh; overflow: auto; }
+.missed li { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: .9rem; }
+.missed li span { display: block; color: var(--lime); font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .speed.fast { animation: none; } }
+</style>
+
+<div id="app" dir="rtl" lang="ar">
+  <div class="wrap">
+    <header class="top">
+      <h1>زرافة داش</h1>
+      <p class="sub">اجرِ واقفز، وأجب عن أسئلة أطول مخلوقات البرّ</p>
+    </header>
+
+    <section class="hud" aria-label="حالة اللعبة">
+      <div class="stat"><span class="k">السؤال القادم</span><span class="v" id="hQ">1/20</span></div>
+      <div class="stat"><span class="k">إجابات صحيحة</span><span class="v" id="hOk">0</span></div>
+      <div class="stat"><span class="k">المحاولة</span><span class="v" id="hAtt">1</span></div>
+      <div class="right">
+        <div class="speed" id="hSpeed">السرعة ×1</div>
+        <button class="snd" id="snd" type="button" aria-pressed="false">الصوت: يعمل</button>
+        <button class="snd" id="lang" type="button">English</button>
+      </div>
+    </section>
+    <div class="pips" id="pips" aria-hidden="true"></div>
+    <div class="perks" id="perks" aria-label="الميزات الحالية">
+      <span class="perk" data-k="shield">درع</span>
+      <span class="perk" data-k="double">قفزة مزدوجة</span>
+      <span class="perk" data-k="slow">زمن بطيء</span>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="cv" aria-label="شاشة اللعبة"></canvas>
+      <div class="start" id="start">
+        <p>المكعب الزرافة يركض وحده. اقفز فوق الأشواك والمناشير والحُفر، وحلّق بالسفينة، وعند كل بوابة تنتظرك مسألة.</p>
+        <button class="btn" id="startBtn" type="button">ابدأ الجري</button>
+      </div>
+    </div>
+    <button class="jump" id="jumpBtn" type="button">اقفز</button>
+    <p class="hint">المسافة أو السهم لأعلى أو الضغط على الشاشة. أمسك للقفز المتكرر، وفي طور السفينة أمسك للصعود وأفلت للهبوط.</p>
+
+    <ul class="rules">
+      <li><b class="g">إجابة صحيحة</b>ميزة للمقطع التالي: درع، قفزة مزدوجة، أو زمن بطيء.</li>
+      <li><b class="r">إجابة خاطئة</b>السرعة تتضاعف ×2 طوال المقطع التالي.</li>
+      <li><b class="c">الاصطدام</b>تعيد المقطع من بدايته، والدرع يحميك من الأشواك والكتل والمناشير.</li>
+    </ul>
+  </div>
+
+  <div class="modal" id="modal" role="dialog" aria-modal="true" hidden>
+    <div class="card" id="card" tabindex="-1"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var QS = [
+    { q: "ما هو التصنيف العام للزرافات من حيث الطول بين الحيوانات البرية؟", c: 0, o: ["أطول الحيوانات البرية الحية على وجه الأرض", "ثاني أطول الحيوانات البرية بعد الفيل", "أقصر الحيوانات العاشبة الكبيرة", "بنفس طول الجمل تقريبًا"] },
+    { q: "كم يبلغ طول الإناث البالغة من الزرافات تقريبًا؟", c: 2, o: ["نحو 8 أقدام", "نحو 10 أقدام", "أكثر من 14 قدمًا", "نحو 25 قدمًا"] },
+    { q: "إلى أي طول يمكن أن يصل الذكر البالغ من الزرافات؟", c: 1, o: ["نحو 12 قدمًا", "أكثر من 18 قدمًا", "نحو 30 قدمًا", "نحو 9 أقدام"] },
+    { q: "ما هو الاسم الذي يطلق على صغار الزرافات؟", c: 2, o: ["الجراء", "الأشبال", "العجول (Calves)", "الصيصان"] },
+    { q: "كم يبلغ طول صغير الزرافة عند الولادة؟", c: 3, o: ["قدمان", "ثلاثة أقدام", "عشرة أقدام", "ستة أقدام"] },
+    { q: "بمعدل كم يزداد طول صغار الزرافات خلال أسبوعها الأول؟", c: 1, o: ["قدم كل يوم", "بوصة إضافية كل يوم", "نصف بوصة كل أسبوع", "لا تنمو في الأسبوع الأول"] },
+    { q: "ما هي الفائدة الرئيسية لطول الزرافة في الحصول على الغذاء؟", c: 0, o: ["تناول الأوراق والبراعم من قمم الأشجار التي لا تصل إليها الحيوانات الأخرى", "الحفر بحثًا عن الجذور", "صيد الأسماك من الأنهار", "الوصول إلى الماء بسهولة"] },
+    { q: "كيف يساعد الطول في حماية الزرافة من الأخطار؟", c: 2, o: ["يجعلها أسرع في الركض", "يخيف المفترسات بحجمه", "يمكّنها من مراقبة المفترسات والمخاطر من مسافة بعيدة", "يخفيها بين الأشجار"] },
+    { q: "كم يبلغ طول قلب الزرافة تقريبًا؟", c: 0, o: ["حوالي قدمين", "حوالي نصف قدم", "حوالي 5 أقدام", "حوالي بوصتين"] },
+    { q: "كم يبلغ وزن قلب الزرافة وما يعادله من قلوب البشر؟", c: 3, o: ["5 أرطال، أي 10 قلوب بشرية", "100 رطل، أي 200 قلب بشري", "10 أرطال، أي 5 قلوب بشرية", "25 رطلًا، أي نحو 50 قلبًا بشريًا"] },
+    { q: "لماذا تطورت جدران عضلية سميكة في قلب الزرافة؟", c: 1, o: ["لحماية القلب من ضربات الأعداء", "بسبب المسافة الكبيرة بين القلب والدماغ نتيجة الرقبة الطويلة جدًا", "لتخزين الطعام لفترات طويلة", "لتحمل برودة الليل"] },
+    { q: "كيف يؤثر ضغط الدم لدى الزرافة على قدرتها الجسدية؟", c: 3, o: ["أقل بمرتين من معظم الحيوانات", "مماثل لضغط الإنسان تمامًا", "أعلى بنحو عشر مرات", "قد يكون أعلى بمرتين من كثير من الحيوانات الأخرى ليدفع الدم عبر الرقبة الطويلة إلى الدماغ"] },
+    { q: "كم عدد فقرات العنق لدى الزرافة وكيف تتطابق مع البشر؟", c: 0, o: ["7 فقرات، مثل الإنسان تمامًا", "14 فقرة، ضعف الإنسان", "3 فقرات، أقل من الإنسان", "20 فقرة، أكثر بكثير"] },
+    { q: "ما هو الفرق في طول فقرة العنق الواحدة بين الإنسان والزرافة؟", c: 1, o: ["الإنسان بوصة واحدة والزرافة بوصتان", "الإنسان نصف بوصة والزرافة 10 بوصات", "الإنسان 5 بوصات والزرافة 10 بوصات", "متساويتان في الطول"] },
+    { q: "إلى أي مدى يمكن أن يمتد طول رقبة الزرافة البالغة وكم يبلغ وزنها؟", c: 2, o: ["حوالي 3 أقدام و100 رطل", "حوالي 10 أقدام و1000 رطل", "حوالي 6 أقدام و600 رطل", "حوالي قدمين و50 رطلًا"] },
+    { q: "في ماذا تستخدم ذكور الزرافات رقابها أحيانًا بخلاف الوصول للطعام؟", c: 0, o: ["القتال على الإناث وتأسيس التسلسل الهرمي داخل القطيع", "حفر الجحور", "حمل الصغار", "إصدار نداءات بعيدة المدى"] },
+    { q: "كم تكفي الزرافة من النوم يوميًا لتبقى على قيد الحياة؟", c: 1, o: ["من 4 إلى 6 ساعات", "من 5 إلى 30 دقيقة فقط", "ساعتان بالضبط", "من 8 إلى 10 ساعات"] },
+    { q: "كيف تحصل الزرافات على قسط من الراحة والنوم؟", c: 3, o: ["بنوم عميق مستلقية كل ليلة", "بالسبات في الشتاء", "بغفوة واحدة طويلة عند الظهيرة", "بسلسلة غفوات من دقيقة إلى دقيقتين، ويمكنها النوم وهي واقفة"] },
+    { q: "لماذا تكتفي الزرافة بغفوات قصيرة جدًا ولا تنام طويلًا؟", c: 2, o: ["لأنها تخاف الظلام", "لأنها لا تحتاج إلى النوم أبدًا", "لأنها تقضي من 16 إلى 20 ساعة يوميًا في الأكل، ولأن النوم مستلقية يعرضها للمفترسات", "لأن رقبتها تؤلمها عند الاستلقاء"] },
+    { q: "ما أسباب تراجع أعداد الزرافات في إفريقيا بنسبة تصل إلى 40% بين عامي 1985 و2015؟", c: 3, o: ["الجفاف وحده", "هجرتها إلى قارات أخرى", "انتشار مرض واحد في القطعان", "تُقتل من أجل جلودها أو لحومها (خاصة في جنوب السودان)، وتُصاد من أجل ذيولها رموزًا للمكانة في بعض مجتمعات الكونغو"] }
+  ];
+
+  /* English questions: same order, same option order as QS */
+  var QE = [
+    { q: "What is the giraffe's general classification in terms of height among land animals?", o: ["The tallest living land animal on Earth", "The second tallest land animal after the elephant", "The shortest large herbivore", "About the same height as a camel"] },
+    { q: "How tall are adult female giraffes, roughly?", o: ["About 8 feet", "About 10 feet", "More than 14 feet", "About 25 feet"] },
+    { q: "How tall can an adult male giraffe get?", o: ["About 12 feet", "More than 18 feet", "About 30 feet", "About 9 feet"] },
+    { q: "What are baby giraffes called?", o: ["Pups", "Cubs", "Calves", "Chicks"] },
+    { q: "How tall is a baby giraffe at birth?", o: ["Two feet", "Three feet", "Ten feet", "Six feet"] },
+    { q: "How fast do baby giraffes grow during their first week?", o: ["A foot every day", "An extra inch every day", "Half an inch every week", "They don't grow in the first week"] },
+    { q: "What is the main benefit of a giraffe's height for finding food?", o: ["Eating leaves and buds from treetops that other animals can't reach", "Digging for roots", "Catching fish in rivers", "Reaching water more easily"] },
+    { q: "How does height help protect a giraffe from danger?", o: ["It makes it run faster", "It scares predators with its size", "It lets it spot predators and other dangers from far away", "It hides it among the trees"] },
+    { q: "About how long is a giraffe's heart?", o: ["About two feet", "About half a foot", "About 5 feet", "About two inches"] },
+    { q: "How much does a giraffe's heart weigh, and how many human hearts is that?", o: ["5 pounds, or 10 human hearts", "100 pounds, or 200 human hearts", "10 pounds, or 5 human hearts", "25 pounds, or about 50 human hearts"] },
+    { q: "Why did thick muscular walls evolve in a giraffe's heart?", o: ["To protect the heart from enemy blows", "Because of the large distance between the heart and the brain caused by the very long neck", "To store food for long periods", "To withstand cold nights"] },
+    { q: "How does a giraffe's blood pressure affect its body?", o: ["Half that of most animals", "Exactly like a human's", "About ten times higher", "It can be twice as high as in many other animals, to push blood through the long neck to the brain"] },
+    { q: "How many neck vertebrae does a giraffe have, and how does that compare with humans?", o: ["7 vertebrae, exactly like humans", "14 vertebrae, double a human's", "3 vertebrae, fewer than a human's", "20 vertebrae, far more"] },
+    { q: "What is the difference in length of a single neck vertebra between a human and a giraffe?", o: ["Human 1 inch, giraffe 2 inches", "Human half an inch, giraffe 10 inches", "Human 5 inches, giraffe 10 inches", "They are the same length"] },
+    { q: "How long can an adult giraffe's neck grow, and how much does it weigh?", o: ["About 3 feet and 100 pounds", "About 10 feet and 1,000 pounds", "About 6 feet and 600 pounds", "About 2 feet and 50 pounds"] },
+    { q: "Besides reaching food, what do male giraffes sometimes use their necks for?", o: ["Fighting over females and establishing a hierarchy within the herd", "Digging burrows", "Carrying their young", "Making long-distance calls"] },
+    { q: "How much sleep is enough for a giraffe to survive each day?", o: ["4 to 6 hours", "Only 5 to 30 minutes", "Exactly two hours", "8 to 10 hours"] },
+    { q: "How do giraffes get rest and sleep?", o: ["Deep sleep lying down every night", "Hibernating in winter", "One long nap at noon", "A series of naps lasting one to two minutes, and they can sleep standing up"] },
+    { q: "Why do giraffes take only very short naps instead of sleeping long?", o: ["Because they are afraid of the dark", "Because they never need sleep", "Because they spend 16 to 20 hours a day eating, and sleeping, especially lying down, exposes them to predators", "Because their neck hurts when lying down"] },
+    { q: "What are the main reasons giraffe numbers in Africa fell by up to 40% between 1985 and 2015?", o: ["Drought alone", "Migration to other continents", "A single disease spreading through herds", "They are killed for their hides or meat (especially in South Sudan), and hunted for their tails, which are status symbols in some Congolese communities"] }
+  ];
+
+  var lang = "ar";
+  try { var savedLang = localStorage.getItem("zd-lang"); if (savedLang === "en" || savedLang === "ar") lang = savedLang; } catch (e) { /* storage is optional */ }
+  var TX = {
+    ar: {
+      title: "زرافة داش", sub: "اجرِ واقفز، وأجب عن أسئلة أطول مخلوقات البرّ",
+      k_next: "السؤال القادم", k_ok: "إجابات صحيحة", k_att: "المحاولة", speed: "السرعة ×",
+      sndon: "الصوت: يعمل", sndoff: "الصوت: مكتوم", other: "English",
+      shield: "درع", double: "قفزة مزدوجة", slow: "زمن بطيء",
+      startp: "المكعب الزرافة يركض وحده. اقفز فوق الأشواك والمناشير والحُفر، وحلّق بالسفينة، وعند كل بوابة تنتظرك مسألة.",
+      start: "ابدأ الجري", jump: "اقفز",
+      hint: "المسافة أو السهم لأعلى أو الضغط على الشاشة. أمسك للقفز المتكرر، وفي طور السفينة أمسك للصعود وأفلت للهبوط.",
+      rule0t: "إجابة صحيحة", rule0d: "ميزة للمقطع التالي: درع، قفزة مزدوجة، أو زمن بطيء.",
+      rule1t: "إجابة خاطئة", rule1d: "السرعة تتضاعف ×2 طوال المقطع التالي.",
+      rule2t: "الاصطدام", rule2d: "تعيد المقطع من بدايته، والدرع يحميك من الأشواك والكتل والمناشير.",
+      r_shield: "درع", r_double: "قفزة مزدوجة", r_slow: "زمن بطيء",
+      rt_shield: "يحميك من اصطدام واحد، ويبقى معك حتى تستعمله.",
+      rt_double: "اضغط مرة ثانية وأنت في الهواء، طوال المقطع التالي (في الطور العادي).",
+      rt_slow: "السرعة ×0.7 طوال المقطع التالي.",
+      gate: "البوابة {a} من {b}", correct: "إجابة صحيحة", perk: "ميزة: ", wrong: "إجابة خاطئة", correctis: "الجواب الصحيح: ",
+      penalty: "عقوبة: السرعة ×2 طوال المقطع التالي", shiptip: "تنبيه: المقطع التالي فيه بوابة سفينة. أمسك للصعود وأفلت للهبوط.",
+      go: "تابع الجري", showres: "اعرض النتيجة", done_eb: "اكتملت المرحلة", rank: "مستواك: ",
+      tier3: "ديمون خارق", tier2: "إنسين", tier1: "هارد", tier0: "نورمال",
+      okc: "صحيحة {a} من {b}", crc: "اصطدامات {a}", review: "راجع ما أخطأت فيه", perfect: "لم تخطئ في أي سؤال. زرافة حقيقية.", again: "العب مرة أخرى",
+      attempt: "المحاولة ", qmark: "؟"
+    },
+    en: {
+      title: "Giraffe Dash", sub: "Run, jump, and answer questions about the tallest animals on land",
+      k_next: "Next question", k_ok: "Correct answers", k_att: "Attempt", speed: "Speed ×",
+      sndon: "Sound: on", sndoff: "Sound: off", other: "العربية",
+      shield: "Shield", double: "Double jump", slow: "Slow time",
+      startp: "The giraffe cube runs on its own. Jump over spikes, saws and pits, fly the ship, and answer a question at every gate.",
+      start: "Start running", jump: "Jump",
+      hint: "Space, up arrow, or tap the screen. Hold to keep jumping. In ship mode, hold to rise and release to fall.",
+      rule0t: "Correct answer", rule0d: "A perk for the next section: shield, double jump, or slow time.",
+      rule1t: "Wrong answer", rule1d: "Speed doubles (×2) for the whole next section.",
+      rule2t: "Crash", rule2d: "You restart the section. The shield protects you from spikes, blocks and saws.",
+      r_shield: "Shield", r_double: "Double jump", r_slow: "Slow time",
+      rt_shield: "Protects you from one crash and stays until you use it.",
+      rt_double: "Press again in mid-air for the whole next section (cube mode).",
+      rt_slow: "Speed ×0.7 for the whole next section.",
+      gate: "Gate {a} of {b}", correct: "Correct answer", perk: "Perk: ", wrong: "Wrong answer", correctis: "Correct answer: ",
+      penalty: "Penalty: speed ×2 for the whole next section", shiptip: "Heads up: the next section has a ship portal. Hold to rise, release to fall.",
+      go: "Keep running", showres: "Show results", done_eb: "Level complete", rank: "Your rank: ",
+      tier3: "Extreme Demon", tier2: "Insane", tier1: "Hard", tier0: "Normal",
+      okc: "Correct {a} of {b}", crc: "Crashes {a}", review: "Review your mistakes", perfect: "No mistakes. A true giraffe.", again: "Play again",
+      attempt: "Attempt ", qmark: "?"
+    }
+  };
+  function T(k) { return TX[lang][k]; }
+  function qText(i) { return lang === "en" ? QE[i].q : QS[i].q; }
+  function oList(i) { return lang === "en" ? QE[i].o : QS[i].o; }
+  function sndLabel() { return muted ? T("sndoff") : T("sndon"); }
+
+  var NSEG = QS.length;
+  var W = 800, H = 480, G = 400, S = 40, PX = 170, CEIL = 64;
+  var L = 2600, SPEED = 340, GRAV = 2600, JV = 820, PADV = 1150;
+  var SHIPSEGS = { 3: 1, 8: 1, 13: 1, 18: 1 };
+  var BPM = 128;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cv = $("cv"), ctx = cv.getContext("2d");
+
+  function rng(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ---------- level patterns ---------- */
+  function spikes(o, x, n, h) { for (var i = 0; i < n; i++) o.push({ t: "s", x: x + i * 40, w: 40, h: h || 40 }); }
+  function blk(o, x, w, h, y) { o.push({ t: "b", x: x, y: (y == null ? G - h : y), w: w, h: h }); }
+  var PAT = {
+    s1: function (x, s) { spikes(s.obs, x, 1); return 40; },
+    s2: function (x, s) { spikes(s.obs, x, 2); return 80; },
+    s3: function (x, s) { spikes(s.obs, x, 3); return 120; },
+    ss: function (x, s) { spikes(s.obs, x, 2, 22); return 80; },
+    pillar: function (x, s) { blk(s.obs, x, 40, 80); return 40; },
+    plat: function (x, s) { blk(s.obs, x, 160, 40); return 160; },
+    pyr: function (x, s) { blk(s.obs, x, 40, 40); blk(s.obs, x + 40, 40, 80); blk(s.obs, x + 80, 40, 40); return 120; },
+    bs: function (x, s) { blk(s.obs, x, 40, 40); spikes(s.obs, x + 40, 2); return 120; },
+    pad: function (x, s) { s.obs.push({ t: "pad", x: x, w: 40 }); blk(s.obs, x + 160, 40, 160); return 200; },
+    saw: function (x, s) { s.obs.push({ t: "saw", x: x + 4, r: 30, cy: G - 16 }); return 68; },
+    gap: function (x, s) { s.gaps.push([x, x + 120]); return 120; },
+    gap2: function (x, s) { s.gaps.push([x, x + 160]); return 160; }
+  };
+  var POOL = [["s1", 0], ["s2", 0], ["ss", 0], ["pillar", 0], ["bs", 0.1], ["plat", 0.1], ["s3", 0.15], ["pyr", 0.2], ["gap", 0.2], ["saw", 0.3], ["pad", 0.35], ["gap2", 0.5]];
+
+  var segs = [];
+  (function build() {
+    for (var i = 0; i < NSEG; i++) {
+      var r = rng(i * 7919 + 13), diff = i / (NSEG - 1), x0 = i * L, x, seg;
+      seg = { obs: [], gaps: [], mode: SHIPSEGS[i] ? "ship" : "cube", portalX: 0 };
+      if (seg.mode === "ship") {
+        seg.portalX = x0 + 240; x = x0 + 700;
+        var last = 230, gh = 190;
+        while (x < (i + 1) * L - 460) {
+          var cy = last + (r() - 0.5) * 220;
+          cy = Math.max(CEIL + gh / 2 + 30, Math.min(G - gh / 2 - 30, cy)); last = cy;
+          var top = cy - gh / 2, bot = cy + gh / 2;
+          seg.obs.push({ t: "b", x: x, y: CEIL, w: 80, h: top - CEIL });
+          seg.obs.push({ t: "b", x: x, y: bot, w: 80, h: G - bot });
+          x += 80 + 330 + r() * 80;
+        }
+      } else {
+        x = x0 + (i === 0 ? 700 : 520);
+        var maxX = (i + 1) * L - 560;
+        var elig = POOL.filter(function (p) { return p[1] <= diff; });
+        while (x < maxX) {
+          var key = elig[Math.floor(r() * elig.length)][0];
+          var w = PAT[key](x, seg);
+          x += w + 540 + r() * (180 - 60 * diff);
+        }
+      }
+      segs.push(seg);
+    }
+  })();
+
+  /* ---------- audio ---------- */
+  var AC = null, master = null, muted = false, musicOn = false, mT0 = 0, nextT = 0, stepIdx = 0, musicTimer = null, noiseBuf = null;
+  var STEP = 60 / BPM / 4, ROOTS = [55, 43.65, 65.41, 49], ARP = [1, 1.189, 1.498, 2, 1.498, 1.189, 1, 0.75];
+  function safe(fn) { try { fn(); } catch (e) { /* audio is optional */ } }
+  function audioInit() {
+    safe(function () {
+      if (!AC) {
+        var C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+        AC = new C(); master = AC.createGain(); master.gain.value = muted ? 0 : 0.45; master.connect(AC.destination);
+        noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+        var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (AC.state === "suspended") AC.resume();
+    });
+  }
+  function osc(type, f0, f1, dur, vol, when) {
+    if (!AC) return;
+    safe(function () {
+      var o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, when);
+      if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, when + dur);
+      g.gain.setValueAtTime(vol, when); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+      o.connect(g); g.connect(master); o.start(when); o.stop(when + dur + 0.03);
+    });
+  }
+  function noise(dur, vol, when, hp) {
+    if (!AC || !noiseBuf) return;
+    safe(function () {
+      var s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+      s.buffer = noiseBuf; f.type = "highpass"; f.frequency.value = hp;
+      g.gain.setValueAtTime(vol, when); g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+      s.connect(f); f.connect(g); g.connect(master); s.start(when); s.stop(when + dur + 0.02);
+    });
+  }
+  function schedStep(i, when) {
+    var bar = Math.floor(i / 16) % 4, s = i % 16, root = ROOTS[bar];
+    if (s % 4 === 0) osc("sine", 150, 42, 0.18, 0.9, when);
+    if (s % 4 === 2) noise(0.05, 0.16, when, 7000);
+    if (s % 2 === 0) osc("sawtooth", s % 4 === 0 ? root : root * 2, s % 4 === 0 ? root : root * 2, 0.2, 0.2, when);
+    osc("square", root * 8 * ARP[s % 8], root * 8 * ARP[s % 8], 0.09, 0.035, when);
+  }
+  function startMusic() {
+    if (!AC || musicOn) return;
+    musicOn = true; stepIdx = 0; nextT = AC.currentTime + 0.08; mT0 = nextT;
+    musicTimer = setInterval(function () {
+      if (!AC) return;
+      while (nextT < AC.currentTime + 0.15) { schedStep(stepIdx, nextT); nextT += STEP; stepIdx++; }
+    }, 30);
+  }
+  function stopMusic() { musicOn = false; if (musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
+  function now() { return AC ? AC.currentTime : 0; }
+  function sfxJump() { osc("square", 420, 760, 0.12, 0.18, now()); }
+  function sfxPad() { osc("square", 300, 1100, 0.22, 0.22, now()); }
+  function sfxPortal() { osc("sawtooth", 200, 900, 0.35, 0.18, now()); }
+  function sfxCrash() { noise(0.45, 0.7, now(), 400); osc("sawtooth", 260, 40, 0.4, 0.4, now()); }
+  function sfxOk() { var n = now(); osc("triangle", 660, 660, 0.12, 0.3, n); osc("triangle", 880, 880, 0.12, 0.3, n + 0.1); osc("triangle", 1320, 1320, 0.2, 0.3, n + 0.2); }
+  function sfxNo() { var n = now(); osc("sawtooth", 220, 110, 0.35, 0.3, n); }
+  function beat() {
+    var bt = 60 / BPM, ph;
+    if (AC && musicOn) ph = ((AC.currentTime - mT0) / bt) % 1; else ph = (tt / bt) % 1;
+    if (ph < 0) ph += 1;
+    return Math.pow(1 - ph, 3);
+  }
+
+  /* ---------- state ---------- */
+  var state = "idle", cur = 0, speedMul = 1, attempts = 1, okCount = 0, results = [], lastReward = "", crashT = 0, tt = 0;
+  var perks = { shield: 0, dbl: false, slow: false };
+  var snap = { shield: 0, dbl: false, slow: false };
+  var P = { x: 0, y: G - S, vy: 0, on: true, rot: 0, dj: false, inv: 0, mode: "cube" };
+  var held = false, buf = 0, edge = false, trailT = 0, shake = 0, flash = 0;
+  var parts = [];
+
+  function snapPerks() { snap = { shield: perks.shield, dbl: perks.dbl, slow: perks.slow }; }
+  function placeStart() { P.x = cur === 0 ? 0 : cur * L - S; P.y = G - S; P.vy = 0; P.on = true; P.rot = 0; P.dj = false; P.inv = 0; P.mode = "cube"; }
+  function resetGame() {
+    cur = 0; speedMul = 1; attempts = 1; okCount = 0; results = []; lastReward = "";
+    perks.shield = 0; perks.dbl = false; perks.slow = false; snapPerks(); placeStart(); held = false; buf = 0; edge = false;
+    parts.length = 0; updateHUD();
+  }
+
+  /* ---------- HUD ---------- */
+  var pipsEl = $("pips");
+  for (var pi = 0; pi < NSEG; pi++) { var sp0 = document.createElement("span"); sp0.className = "pip"; pipsEl.appendChild(sp0); }
+  function updateHUD() {
+    $("hQ").textContent = Math.min(cur + 1, NSEG) + "/" + NSEG;
+    $("hOk").textContent = okCount;
+    $("hAtt").textContent = attempts;
+    var sp = $("hSpeed");
+    sp.textContent = T("speed") + String(speedMul);
+    sp.className = "speed" + (speedMul > 1 ? " fast" : speedMul < 1 ? " slow" : "");
+    var kids = pipsEl.children;
+    for (var i = 0; i < NSEG; i++) {
+      var cls = "pip" + (SHIPSEGS[i] ? " ship" : "");
+      if (results[i] === true) cls += " ok"; else if (results[i] === false) cls += " no";
+      if (i === cur && state !== "done") cls += " now";
+      kids[i].className = cls;
+    }
+    var chips = $("perks").children;
+    for (var k = 0; k < chips.length; k++) {
+      var key = chips[k].getAttribute("data-k"), on = false;
+      if (key === "shield") { on = perks.shield > 0; chips[k].textContent = perks.shield > 1 ? T("shield") + " ×" + perks.shield : T("shield"); }
+      if (key === "double") on = perks.dbl;
+      if (key === "slow") on = perks.slow;
+      chips[k].className = "perk" + (on ? " on" : "");
+    }
+  }
+
+  /* ---------- physics ---------- */
+  function burst(x, y, n, cols, g) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 320;
+      parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: 0.5 + Math.random() * 0.5, max: 1, s: 4 + Math.random() * 6, col: cols[i % cols.length], g: g == null ? 900 : g });
+    }
+  }
+  function hit(ax, ay, aw, ah, bx, by, bw, bh) { return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }
+  function inGap(seg, cx) { for (var i = 0; i < seg.gaps.length; i++) if (cx > seg.gaps[i][0] && cx < seg.gaps[i][1]) return true; return false; }
+
+  function crashNow() {
+    state = "crashed"; crashT = 0.85; held = false; shake = 0.4; flash = 1;
+    burst(P.x + S / 2, P.y + S / 2, 40, ["#f6c343", "#a85a1a", "#ffffff", "#2a1500"]);
+    sfxCrash();
+  }
+  function hurt() {
+    if (P.inv > 0) return false;
+    if (perks.shield > 0) {
+      perks.shield--; P.inv = 0.9; burst(P.x + S / 2, P.y + S / 2, 18, ["#2ef2ff", "#ffffff"]); updateHUD(); return false;
+    }
+    crashNow(); return true;
+  }
+  function doJump(dbl) {
+    P.vy = -JV * (dbl ? 0.92 : 1); P.on = false;
+    if (dbl) { P.dj = true; burst(P.x + S / 2, P.y + S, 10, ["#ff3ea5", "#ffffff"]); }
+    edge = false; buf = 0; sfxJump();
+  }
+
+  function stepCube(d, seg) {
+    var prevB = P.y + S, wasOn = P.on, i, o;
+    P.vy += GRAV * d; var impact = P.vy; P.y += P.vy * d; P.on = false;
+    for (i = 0; i < seg.obs.length; i++) {
+      o = seg.obs[i];
+      if (o.t !== "b") continue;
+      if (P.x + S - 6 > o.x && P.x + 6 < o.x + o.w && P.y + S > o.y && P.y < o.y + o.h) {
+        if (P.vy >= 0 && prevB <= o.y + 14) { P.y = o.y - S; P.vy = 0; P.on = true; }
+        else if (hurt()) return;
+      }
+    }
+    if (P.y + S >= G && !inGap(seg, P.x + S / 2)) { P.y = G - S; P.vy = 0; P.on = true; }
+    if (P.y > H + 30) { crashNow(); return; }
+    for (i = 0; i < seg.obs.length; i++) {
+      o = seg.obs[i];
+      if (o.t === "s") {
+        if (hit(P.x + 7, P.y + 7, S - 14, S - 14, o.x + 11, G - o.h * 0.62, 18, o.h * 0.62)) { if (hurt()) return; }
+      } else if (o.t === "saw") {
+        var cx = o.x + o.r, nx = Math.max(P.x + 8, Math.min(cx, P.x + S - 8)), ny = Math.max(P.y + 8, Math.min(o.cy, P.y + S - 8));
+        if ((nx - cx) * (nx - cx) + (ny - o.cy) * (ny - o.cy) < (o.r - 6) * (o.r - 6)) { if (hurt()) return; }
+      } else if (o.t === "pad") {
+        if (P.on && hit(P.x + 4, P.y + S - 8, S - 8, 8, o.x, G - 12, o.w, 12)) {
+          P.vy = -PADV; P.on = false; P.dj = false; sfxPad(); burst(o.x + 20, G - 8, 12, ["#ffd84a", "#ffffff"]);
+        }
+      }
+    }
+    if (P.on && !wasOn && impact > 350) burst(P.x + S / 2, P.y + S, 5, ["rgba(255,255,255,.7)"], 200);
+    if (P.on) { P.dj = false; P.rot = Math.round(P.rot / (Math.PI / 2)) * (Math.PI / 2); }
+    else P.rot += 2.55 * d;
+  }
+
+  function stepShip(d, seg) {
+    P.vy += (held ? -2300 : 1700) * d;
+    if (P.vy > 430) P.vy = 430; if (P.vy < -430) P.vy = -430;
+    P.y += P.vy * d;
+    if (P.y < CEIL) { P.y = CEIL; if (P.vy < 0) P.vy = 0; }
+    if (P.y + S > G) { P.y = G - S; if (P.vy > 0) P.vy = 0; }
+    P.on = false;
+    for (var i = 0; i < seg.obs.length; i++) {
+      var o = seg.obs[i];
+      if (o.t === "b" && hit(P.x + 6, P.y + 7, S - 12, S - 14, o.x, o.y, o.w, o.h)) { if (hurt()) return; }
+    }
+    P.rot = Math.atan2(P.vy, SPEED) * 0.7;
+  }
+
+  function step(d) {
+    P.x += SPEED * d;
+    var seg = segs[cur], gx = (cur + 1) * L - S;
+    if (P.x >= gx) { P.x = gx; reachGate(); return; }
+    if (seg.mode === "ship" && P.mode === "cube" && P.x >= seg.portalX) {
+      P.mode = "ship"; P.vy = 0; P.on = false; P.dj = false; sfxPortal(); burst(P.x + S, P.y + S / 2, 16, ["#ff3ea5", "#ffffff"]);
+    }
+    if (P.mode === "ship") stepShip(d, seg); else stepCube(d, seg);
+  }
+
+  function update(dt) {
+    buf = Math.max(0, buf - dt);
+    var gdt = dt * speedMul, n = Math.max(1, Math.ceil(gdt / (1 / 120))), d = gdt / n;
+    for (var i = 0; i < n && state === "play"; i++) {
+      if (P.mode === "cube") {
+        if (P.on && (held || buf > 0)) doJump(false);
+        else if (!P.on && edge && perks.dbl && !P.dj) doJump(true);
+      }
+      step(d);
+    }
+    edge = false;
+    if (P.inv > 0) P.inv -= gdt;
+    trailT -= dt;
+    if (state === "play" && trailT <= 0) {
+      trailT = 0.035;
+      if (P.mode === "ship") parts.push({ x: P.x - 4, y: P.y + S * 0.7, vx: -140, vy: (Math.random() - 0.5) * 40, life: 0.35, max: 0.35, s: held ? 9 : 5, col: held ? "#ffb02e" : "#ff6a3a", g: 0 });
+      else if (P.on) parts.push({ x: P.x + 2, y: P.y + S - 4 - Math.random() * 6, vx: -90, vy: -20 - Math.random() * 30, life: 0.3, max: 0.3, s: 6, col: "#ffcf4a", g: 0 });
+    }
+  }
+
+  function updateParts(dt) {
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var q = parts[i];
+      q.life -= dt; if (q.life <= 0) { parts.splice(i, 1); continue; }
+      q.x += q.vx * dt; q.y += q.vy * dt; q.vy += q.g * dt;
+    }
+  }
+
+  function respawn() {
+    perks.shield = snap.shield; perks.dbl = snap.dbl; perks.slow = snap.slow;
+    placeStart(); attempts++; state = "play"; held = false; buf = 0; edge = false; parts.length = 0; updateHUD();
+  }
+
+  /* ---------- gate and questions ---------- */
+  function h(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var modal = $("modal"), card = $("card");
+  function showModal() { modal.hidden = false; card.scrollTop = 0; try { card.focus({ preventScroll: true }); } catch (e) { card.focus(); } }
+  function hideModal() { modal.hidden = true; }
+
+  function rewardInfo(k) {
+    return { name: T("r_" + k), text: T("rt_" + k), cls: { shield: "c", double: "p", slow: "g" }[k] };
+  }
+
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; }
+    return a;
+  }
+
+  function reachGate() {
+    state = "question"; held = false; buf = 0; edge = false;
+    P.y = G - S; P.vy = 0; P.on = true; P.inv = 0; P.mode = "cube"; P.rot = 0;
+    sfxPortal(); burst(P.x + S, G * 0.5, 24, ["#ffd84a", "#ff3ea5", "#ffffff"], 300);
+    showQuestion(cur);
+  }
+
+  function showQuestion(i) {
+    var Q = QS[i];
+    var opts = shuffle(oList(i).map(function (txt, k) { return { txt: txt, ok: k === Q.c }; }));
+    card.textContent = "";
+    card.appendChild(h("p", "eyebrow", T("gate").replace("{a}", i + 1).replace("{b}", NSEG)));
+    card.appendChild(h("h2", "", qText(i)));
+    var list = h("div", "opts"), btns = [];
+    opts.forEach(function (op, k) {
+      var b = h("button", "opt"); b.type = "button";
+      b.appendChild(h("span", "n", String(k + 1)));
+      b.appendChild(h("span", "t", op.txt));
+      b.addEventListener("click", function () { choose(i, opts, btns, k); });
+      btns.push(b); list.appendChild(b);
+    });
+    card.appendChild(list);
+    showModal();
+  }
+
+  function choose(i, opts, btns, k) {
+    if (btns[0].disabled) return;
+    btns.forEach(function (b, j) { b.disabled = true; if (opts[j].ok) b.classList.add("good"); else if (j === k) b.classList.add("bad"); });
+    var ok = opts[k].ok, fb = h("div", "fb"), reward = null;
+    results[i] = ok;
+    perks.dbl = false; perks.slow = false;
+    if (ok) {
+      okCount++; sfxOk();
+      var pool = ["shield", "double", "slow"].filter(function (r) { return r !== lastReward; });
+      reward = pool[Math.floor(Math.random() * pool.length)]; lastReward = reward;
+      if (reward === "shield") perks.shield = Math.min(2, perks.shield + 1);
+      if (reward === "double") perks.dbl = true;
+      if (reward === "slow") perks.slow = true;
+      speedMul = reward === "slow" ? 0.7 : 1;
+      fb.appendChild(h("p", "ttl ok", T("correct")));
+      var rw = rewardInfo(reward);
+      var line = h("p"); line.appendChild(h("span", "chip " + rw.cls, T("perk") + rw.name));
+      fb.appendChild(line); fb.appendChild(h("p", "", rw.text));
+    } else {
+      speedMul = 2; sfxNo();
+      fb.appendChild(h("p", "ttl no", T("wrong")));
+      var okTxt = opts.filter(function (o) { return o.ok; })[0].txt;
+      fb.appendChild(h("p", "", T("correctis") + okTxt));
+      var l2 = h("p"); l2.appendChild(h("span", "chip r", T("penalty")));
+      fb.appendChild(l2);
+    }
+    if (i < NSEG - 1 && SHIPSEGS[i + 1]) fb.appendChild(h("p", "", T("shiptip")));
+    var go = h("button", "btn", i === NSEG - 1 ? T("showres") : T("go")); go.type = "button";
+    go.addEventListener("click", function () { hideModal(); afterQuestion(i); });
+    fb.appendChild(go);
+    card.appendChild(fb);
+    updateHUD();
+    try { go.focus({ preventScroll: true }); } catch (e) { go.focus(); }
+    fb.scrollIntoView({ block: "nearest" });
+  }
+
+  function afterQuestion(i) {
+    if (i === NSEG - 1) { endGame(); return; }
+    cur++; snapPerks(); placeStart(); held = false; buf = 0; edge = false; state = "play"; updateHUD();
+  }
+
+  function endGame() {
+    state = "done"; updateHUD(); stopMusic();
+    var tier = okCount >= 19 ? T("tier3") : okCount >= 15 ? T("tier2") : okCount >= 10 ? T("tier1") : T("tier0");
+    card.textContent = "";
+    card.appendChild(h("p", "eyebrow", T("done_eb")));
+    card.appendChild(h("h2", "", T("rank") + tier));
+    var st = h("div", "stats");
+    st.appendChild(h("span", "chip g", T("okc").replace("{a}", okCount).replace("{b}", NSEG)));
+    st.appendChild(h("span", "chip r", T("crc").replace("{a}", attempts - 1)));
+    card.appendChild(st);
+    var missed = [];
+    for (var i = 0; i < NSEG; i++) if (results[i] === false) missed.push(i);
+    if (missed.length) {
+      card.appendChild(h("p", "eyebrow", T("review")));
+      var ul = h("ul", "missed");
+      missed.forEach(function (i) {
+        var li = h("li", "", qText(i));
+        li.appendChild(h("span", "", oList(i)[QS[i].c]));
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+    } else {
+      card.appendChild(h("p", "", T("perfect")));
+    }
+    var again = h("button", "btn", T("again")); again.type = "button";
+    again.addEventListener("click", function () { hideModal(); startGame(); });
+    card.appendChild(again);
+    showModal();
+  }
+
+  function startGame() {
+    audioInit(); startMusic();
+    resetGame(); $("start").hidden = true; hideModal(); state = "play"; updateHUD();
+  }
+
+  /* ---------- input ---------- */
+  function press() { if (state !== "play") return; held = true; buf = 0.12; edge = true; }
+  function release() { held = false; }
+  ["stage", "jumpBtn"].forEach(function (id) {
+    $(id).addEventListener("pointerdown", function (e) { if (state === "play") { e.preventDefault(); press(); } });
+  });
+  window.addEventListener("pointerup", release);
+  window.addEventListener("pointercancel", release);
+  $("startBtn").addEventListener("click", startGame);
+  $("snd").addEventListener("click", function () {
+    muted = !muted; audioInit();
+    if (master) master.gain.value = muted ? 0 : 0.45;
+    this.setAttribute("aria-pressed", muted ? "true" : "false");
+    this.textContent = sndLabel();
+  });
+  window.addEventListener("keydown", function (e) {
+    if (state === "question") {
+      var n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 4) { var bs = card.querySelectorAll(".opt"); if (bs[n - 1] && !bs[n - 1].disabled) bs[n - 1].click(); }
+      return;
+    }
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") {
+      if (e.target && e.target.tagName === "BUTTON" && state !== "play" && state !== "idle") return;
+      e.preventDefault();
+      if (state === "idle") { if (!e.repeat) startGame(); }
+      else if (state === "play") { if (!e.repeat) press(); else held = true; }
+    }
+  });
+  window.addEventListener("keyup", function (e) {
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") release();
+  });
+
+  /* ---------- drawing ---------- */
+  function fit() {
+    var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(2, Math.round(r.width * dpr));
+    cv.height = Math.max(2, Math.round(r.width * H / W * dpr));
+  }
+  window.addEventListener("resize", fit);
+
+  var pal = null;
+  function makePal(cam) {
+    var hu = (212 + cam / L * 24) % 360, pu = beat();
+    pal = {
+      hu: hu, pu: pu,
+      top: "hsl(" + hu + ",72%," + (24 + 6 * pu) + "%)",
+      bot: "hsl(" + ((hu + 40) % 360) + ",70%," + (13 + 4 * pu) + "%)",
+      ground: "hsl(" + hu + ",65%," + (15 + 3 * pu) + "%)",
+      ground2: "hsl(" + hu + ",65%,9%)",
+      line: "hsl(" + hu + ",100%," + (66 + 12 * pu) + "%)",
+      tile: "hsl(" + hu + ",70%,17%)",
+      tileIn: "hsla(" + hu + ",100%,75%," + (0.07 + 0.12 * pu) + ")",
+      shape: "hsla(" + hu + ",100%,80%,0.07)"
+    };
+  }
+
+  function drawBg(cam) {
+    var g = ctx.createLinearGradient(0, 0, 0, G);
+    g.addColorStop(0, pal.top); g.addColorStop(1, pal.bot);
+    ctx.fillStyle = g; ctx.fillRect(-30, -30, W + 60, H + 60);
+    var i, base;
+    ctx.strokeStyle = pal.shape; ctx.lineWidth = 3;
+    base = Math.floor(cam * 0.15 / 320);
+    for (i = base - 1; i < base + 4; i++) {
+      var sx1 = i * 320 - cam * 0.15, sz = 90 + (((i % 5) + 5) % 5) * 22, sy = 80 + (((i * 3 % 7) + 7) % 7) * 36;
+      ctx.save(); ctx.translate(sx1 + sz / 2, sy + sz / 2); ctx.rotate(tt * 0.12 + i);
+      ctx.strokeRect(-sz / 2, -sz / 2, sz, sz); ctx.restore();
+    }
+    base = Math.floor(cam * 0.32 / 230);
+    for (i = base - 1; i < base + 5; i++) {
+      var sx2 = i * 230 - cam * 0.32 + 60, tr = 36 + (((i % 4) + 4) % 4) * 14, sy2 = 110 + (((i * 5 % 6) + 6) % 6) * 38;
+      ctx.save(); ctx.translate(sx2, sy2); ctx.rotate(-tt * 0.2 + i * 2);
+      ctx.beginPath(); ctx.moveTo(0, -tr); ctx.lineTo(tr * 0.87, tr * 0.5); ctx.lineTo(-tr * 0.87, tr * 0.5); ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+    ctx.fillStyle = pal.shape;
+    base = Math.floor(cam * 0.25 / 150);
+    for (i = base - 1; i < base + 8; i++) {
+      var bx = i * 150 - cam * 0.25, bh = 70 + (((i % 7) + 7) % 7) * 20;
+      ctx.fillRect(bx, G - bh, 90, bh);
+    }
+  }
+
+  function drawGround(cam, seg) {
+    var gs = 40, x, y;
+    var fillSolid = function (x0, x1) {
+      if (x1 <= 0 || x0 >= W) return;
+      x0 = Math.max(x0, -30); x1 = Math.min(x1, W + 30);
+      var gg = ctx.createLinearGradient(0, G, 0, H); gg.addColorStop(0, pal.ground); gg.addColorStop(1, pal.ground2);
+      ctx.fillStyle = gg; ctx.fillRect(x0, G, x1 - x0, H - G);
+      ctx.strokeStyle = pal.tileIn; ctx.lineWidth = 2;
+      var s0 = Math.floor((x0 + cam) / gs) * gs - cam;
+      for (x = s0; x < x1; x += gs) { ctx.strokeRect(x + 4, G + 6, gs - 8, gs - 8); ctx.strokeRect(x + 4, G + 6 + gs, gs - 8, Math.max(0, H - G - gs - 14)); }
+      ctx.save(); ctx.shadowColor = pal.line; ctx.shadowBlur = 10 + 16 * pal.pu; ctx.fillStyle = pal.line; ctx.fillRect(x0, G - 2, x1 - x0, 4); ctx.restore();
+    };
+    var gaps = []; [segs[cur], segs[cur + 1]].forEach(function (sg) { if (sg) sg.gaps.forEach(function (gp) { gaps.push([gp[0] - cam, gp[1] - cam]); }); });
+    gaps.sort(function (a, b) { return a[0] - b[0]; });
+    var px = -30;
+    gaps.forEach(function (gp) { fillSolid(px, gp[0]); px = Math.max(px, gp[1]); });
+    fillSolid(px, W + 30);
+    gaps.forEach(function (gp) {
+      if (gp[1] < 0 || gp[0] > W) return;
+      ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(gp[0], G, gp[1] - gp[0], H - G);
+      ctx.fillStyle = pal.line; ctx.fillRect(gp[0] - 2, G, 3, H - G); ctx.fillRect(gp[1] - 1, G, 3, H - G);
+    });
+  }
+
+  function drawBlock(o, sx) {
+    var xx, yy, tw, th;
+    for (yy = 0; yy < o.h; yy += 40) {
+      th = Math.min(40, o.h - yy);
+      for (xx = 0; xx < o.w; xx += 40) {
+        tw = Math.min(40, o.w - xx);
+        ctx.fillStyle = pal.tile; ctx.fillRect(sx + xx, o.y + yy, tw, th);
+        ctx.fillStyle = pal.tileIn; ctx.fillRect(sx + xx + 8, o.y + yy + 8, Math.max(0, tw - 16), Math.max(0, th - 16));
+      }
+    }
+    ctx.lineWidth = 2.5; ctx.strokeStyle = pal.line;
+    ctx.strokeRect(sx + 1.25, o.y + 1.25, o.w - 2.5, o.h - 2.5);
+    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,.18)";
+    for (xx = 40; xx < o.w; xx += 40) { ctx.beginPath(); ctx.moveTo(sx + xx, o.y); ctx.lineTo(sx + xx, o.y + o.h); ctx.stroke(); }
+    for (yy = 40; yy < o.h; yy += 40) { ctx.beginPath(); ctx.moveTo(sx, o.y + yy); ctx.lineTo(sx + o.w, o.y + yy); ctx.stroke(); }
+  }
+
+  function drawObs(seg, cam) {
+    for (var i = 0; i < seg.obs.length; i++) {
+      var o = seg.obs[i], sx = o.x - cam;
+      if (sx > W + 80 || sx + (o.w || o.r * 2) < -80) continue;
+      if (o.t === "s") {
+        ctx.beginPath(); ctx.moveTo(sx, G); ctx.lineTo(sx + 20, G - o.h); ctx.lineTo(sx + 40, G); ctx.closePath();
+        ctx.fillStyle = "#03041c"; ctx.fill();
+        ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sx + 10, G); ctx.lineTo(sx + 20, G - o.h * 0.55); ctx.lineTo(sx + 30, G); ctx.closePath();
+        ctx.fillStyle = "rgba(255,255,255,.1)"; ctx.fill();
+      } else if (o.t === "b") {
+        drawBlock(o, sx);
+      } else if (o.t === "pad") {
+        ctx.save(); ctx.shadowColor = "#ffd84a"; ctx.shadowBlur = 12 + 12 * pal.pu;
+        ctx.fillStyle = "#ffd84a"; ctx.beginPath(); ctx.moveTo(sx + 2, G); ctx.quadraticCurveTo(sx + 20, G - 20, sx + 38, G); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      } else if (o.t === "saw") {
+        var cx = sx + o.r;
+        ctx.save(); ctx.translate(cx, o.cy); ctx.rotate(tt * 9);
+        ctx.beginPath();
+        for (var k = 0; k < 16; k++) { var a = k * Math.PI / 8, rr = (k % 2 === 0) ? o.r : o.r * 0.7; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+        ctx.closePath(); ctx.fillStyle = "#0a0c33"; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff"; ctx.lineJoin = "round"; ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, o.r * 0.3, 0, Math.PI * 2); ctx.strokeStyle = pal.line; ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+
+  function drawGate(gx, cam) {
+    var sx = gx - cam;
+    if (sx < -70 || sx > W + 70) return;
+    var wob = 4 * Math.sin(tt * 5);
+    var gr = ctx.createLinearGradient(sx - 26, 0, sx + 26, 0);
+    gr.addColorStop(0, "rgba(255,62,165,0)"); gr.addColorStop(0.5, "rgba(255,255,255,.95)"); gr.addColorStop(1, "rgba(46,242,255,0)");
+    ctx.fillStyle = gr; ctx.fillRect(sx - 26 - wob, 0, 52 + wob * 2, G);
+    ctx.save();
+    ctx.shadowColor = "#ff3ea5"; ctx.shadowBlur = 24; ctx.fillStyle = "#ffffff";
+    ctx.fillRect(sx - 3, 0, 6, G);
+    ctx.font = "96px Lalezar, Cairo, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffd84a"; ctx.fillText(T("qmark"), sx, G * 0.42);
+    ctx.restore();
+  }
+
+  function drawPortal(px, cam) {
+    var sx = px - cam;
+    if (sx < -60 || sx > W + 60) return;
+    var cy = G - 110, ry = 78, rx = 20 + 3 * Math.sin(tt * 6);
+    ctx.save(); ctx.shadowColor = "#ff3ea5"; ctx.shadowBlur = 20;
+    ctx.lineWidth = 6; ctx.strokeStyle = "#ff3ea5";
+    ctx.beginPath(); ctx.ellipse(sx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 3; ctx.strokeStyle = "#ffffff";
+    ctx.beginPath(); ctx.ellipse(sx, cy, rx * 0.5, ry * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCube(sc) {
+    ctx.save(); ctx.scale(sc, sc);
+    ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = "#2a1500";
+    ctx.fillStyle = "#5a2d0c";
+    ctx.fillRect(-11, -S / 2 - 9, 5, 9); ctx.fillRect(6, -S / 2 - 9, 5, 9);
+    ctx.fillRect(-13, -S / 2 - 12, 9, 5); ctx.fillRect(4, -S / 2 - 12, 9, 5);
+    ctx.fillStyle = "#f6c343"; ctx.fillRect(-S / 2, -S / 2, S, S); ctx.strokeRect(-S / 2, -S / 2, S, S);
+    ctx.fillStyle = "#a85a1a";
+    ctx.fillRect(-17, -16, 10, 9); ctx.fillRect(5, 1, 12, 10); ctx.fillRect(-12, 8, 8, 7); ctx.fillRect(8, -17, 7, 6);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(-10, -6, 8, 8); ctx.fillRect(3, -6, 8, 8);
+    ctx.fillStyle = "#111"; ctx.fillRect(-6, -4, 4, 5); ctx.fillRect(7, -4, 4, 5);
+    ctx.fillStyle = "#2a1500"; ctx.fillRect(-6, 8, 12, 3);
+    ctx.restore();
+  }
+
+  function drawPlayer() {
+    var cx = PX + S / 2, cy = P.y + S / 2;
+    if (P.inv > 0 && Math.floor(tt * 20) % 2) ctx.globalAlpha = 0.4;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(P.rot);
+    if (P.mode === "ship") {
+      ctx.fillStyle = "#ff3ea5"; ctx.strokeStyle = "#2a0820"; ctx.lineWidth = 3; ctx.lineJoin = "round";
+      ctx.beginPath(); ctx.moveTo(-30, 6); ctx.lineTo(30, 6); ctx.lineTo(36, -2); ctx.lineTo(22, 20); ctx.lineTo(-24, 20); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#ffd84a"; ctx.fillRect(-34, 2, 10, 6);
+      ctx.translate(0, -6); drawCube(0.62);
+    } else {
+      drawCube(1);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    if (perks.shield > 0 || P.inv > 0) {
+      ctx.save(); ctx.strokeStyle = "rgba(46,242,255,.9)"; ctx.lineWidth = 3; ctx.shadowColor = "#2ef2ff"; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(cx, cy, S * 0.9, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+    if (perks.dbl && P.mode === "cube" && !P.on && !P.dj) {
+      ctx.fillStyle = "#ff3ea5"; ctx.fillRect(cx - S * 0.95, cy - 3, 8, 6); ctx.fillRect(cx + S * 0.95 - 8, cy - 3, 8, 6);
+    }
+  }
+
+  function drawCeiling(seg, cam) {
+    var x0 = Math.max(seg.portalX - cam, -30), x1 = Math.min((cur + 1) * L - cam, W + 30);
+    if (x1 <= x0) return;
+    var gg = ctx.createLinearGradient(0, 0, 0, CEIL); gg.addColorStop(0, pal.ground2); gg.addColorStop(1, pal.ground);
+    ctx.fillStyle = gg; ctx.fillRect(x0, -30, x1 - x0, CEIL + 30);
+    ctx.strokeStyle = pal.tileIn; ctx.lineWidth = 2;
+    for (var x = Math.floor((x0 + cam) / 40) * 40 - cam; x < x1; x += 40) ctx.strokeRect(x + 4, CEIL - 34, 32, 28);
+    ctx.save(); ctx.shadowColor = pal.line; ctx.shadowBlur = 10 + 16 * pal.pu; ctx.fillStyle = pal.line; ctx.fillRect(x0, CEIL - 2, x1 - x0, 4); ctx.restore();
+  }
+
+  function draw() {
+    var k = cv.width / W; ctx.setTransform(k, 0, 0, k, 0, 0);
+    var cam = P.x - PX, i, bgcam = cam + (state === "idle" ? tt * 180 : 0);
+    makePal(bgcam);
+    var seg = segs[cur];
+    ctx.save();
+    if (shake > 0) ctx.translate((Math.random() - 0.5) * shake * 26, (Math.random() - 0.5) * shake * 26);
+    drawBg(bgcam);
+    drawGround(bgcam, seg);
+    if (seg.mode === "ship") drawCeiling(seg, cam);
+    drawObs(seg, cam);
+    if (segs[cur + 1]) drawObs(segs[cur + 1], cam);
+    if (seg.mode === "ship") drawPortal(seg.portalX, cam);
+    if (segs[cur + 1] && segs[cur + 1].mode === "ship") drawPortal(segs[cur + 1].portalX, cam);
+    if (cur >= 1) drawGate(cur * L, cam);
+    drawGate((cur + 1) * L, cam);
+
+    var sx0 = (cur === 0 ? 0 : cur * L - S) - cam + 230;
+    if (sx0 > -300 && sx0 < W + 300) {
+      ctx.save(); ctx.font = "52px Lalezar, Cairo, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.shadowColor = pal.line; ctx.shadowBlur = 14;
+      ctx.fillText(T("attempt") + attempts, sx0, 150); ctx.restore();
+    }
+
+    for (i = 0; i < parts.length; i++) {
+      var q = parts[i], a = Math.max(0, Math.min(1, q.life / (q.max || 1)));
+      ctx.globalAlpha = a; ctx.fillStyle = q.col;
+      ctx.fillRect(q.x - cam - q.s / 2, q.y - q.s / 2, q.s, q.s);
+    }
+    ctx.globalAlpha = 1;
+    if (state !== "crashed") drawPlayer();
+
+    if (speedMul > 1 && (state === "play" || state === "crashed")) {
+      ctx.fillStyle = "rgba(255,60,90,.10)"; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.lineWidth = 2;
+      for (i = 0; i < 14; i++) {
+        var ly = 30 + (i * 67) % 330, lx = W - ((tt * 1500 + i * 131) % (W + 140));
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 70 + (i % 3) * 25, ly); ctx.stroke();
+      }
+    } else if (speedMul < 1 && state === "play") {
+      ctx.fillStyle = "rgba(60,140,255,.10)"; ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+
+    if (flash > 0) { ctx.fillStyle = "rgba(255,255,255," + (flash * 0.45) + ")"; ctx.fillRect(0, 0, W, H); }
+
+    var prog = Math.max(0, Math.min(1, (P.x + S) / (NSEG * L)));
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(W / 2 - 150, 10, 300, 12);
+    ctx.fillStyle = pal.line; ctx.fillRect(W / 2 - 150, 10, 300 * prog, 12);
+    ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.strokeRect(W / 2 - 150, 10, 300, 12);
+    ctx.font = "16px Cairo, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#fff";
+    ctx.fillText(Math.floor(prog * 100) + "%", W / 2 + 158, 17);
+  }
+
+  var last = 0;
+  function frame(ts) {
+    var dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts; tt += dt;
+    if (shake > 0) shake = Math.max(0, shake - dt);
+    if (flash > 0) flash = Math.max(0, flash - dt * 3);
+    if (state === "play") update(dt);
+    else if (state === "crashed") { crashT -= dt; if (crashT <= 0) respawn(); }
+    updateParts(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function applyLang() {
+    var app = $("app"), i;
+    app.setAttribute("dir", lang === "en" ? "ltr" : "rtl"); app.setAttribute("lang", lang);
+    document.querySelector("h1").textContent = T("title");
+    document.querySelector(".sub").textContent = T("sub");
+    var ks = document.querySelectorAll(".stat .k");
+    ks[0].textContent = T("k_next"); ks[1].textContent = T("k_ok"); ks[2].textContent = T("k_att");
+    var pk = $("perks").children;
+    pk[0].textContent = T("shield"); pk[1].textContent = T("double"); pk[2].textContent = T("slow");
+    document.querySelector(".start p").textContent = T("startp");
+    $("startBtn").textContent = T("start"); $("jumpBtn").textContent = T("jump");
+    document.querySelector(".hint").textContent = T("hint");
+    var lis = document.querySelectorAll(".rules li"), cl = ["g", "r", "c"];
+    for (i = 0; i < 3; i++) {
+      lis[i].textContent = "";
+      lis[i].appendChild(h("b", cl[i], T("rule" + i + "t")));
+      lis[i].appendChild(document.createTextNode(T("rule" + i + "d")));
+    }
+    $("snd").textContent = sndLabel();
+    $("lang").textContent = T("other");
+    updateHUD();
+  }
+  $("lang").addEventListener("click", function () {
+    lang = lang === "ar" ? "en" : "ar";
+    try { localStorage.setItem("zd-lang", lang); } catch (e) { /* storage is optional */ }
+    applyLang();
+  });
+
+  fit(); resetGame(); applyLang();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
